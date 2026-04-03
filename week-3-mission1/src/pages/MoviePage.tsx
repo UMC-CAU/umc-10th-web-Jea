@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { type MovieResponse, type Movie } from '../types/movie';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom'
 
 const ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyMGNjOTVlYzA0NGNkMDAxZGE2MTdlYmQ0YWM1NmYyNyIsIm5iZiI6MTc3NDg1Mjc4OS44MzcsInN1YiI6IjY5Y2ExYWI1M2NiMjJmOGI1ZGNlMzg0ZiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.A_5DIJZDguvuQ0sgNKJhgP0YihVU4aqeI7AfZq6eZa0';
 
@@ -85,7 +86,7 @@ const MoviePage = () => {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-6">
                 {movies.map((movie) => (
-                    <div key={movie.id} className="relative group cursor-pointer">
+                    <Link key={movie.id} to={`/movies/${movie.id}`}className="relative group cursor-pointer">
                         <img
                             src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
                             referrerPolicy="no-referrer"
@@ -101,7 +102,7 @@ const MoviePage = () => {
                                 {movie.overview || '줄거리 정보가 없습니다.'}
                             </p>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </div>

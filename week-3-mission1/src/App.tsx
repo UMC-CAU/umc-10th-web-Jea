@@ -33,6 +33,7 @@ import Navbar from "./components/navbar";
 import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
 import HomePage from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import MovieDetailPage from "./pages/MovieDetailPage";
 
 const Layout = () => (
   <>
@@ -49,6 +50,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "/movies", element: <MoviePage /> },
+      { path: "/movies/:movieId", element: <MovieDetailPage />}
     ],
   },
 ]);
