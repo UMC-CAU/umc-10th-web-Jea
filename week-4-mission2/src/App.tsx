@@ -3,7 +3,7 @@ import Navbar from './components/navbar'
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom'
 import { HomePage } from './pages/HomePage'
 import { Login } from './pages/Login'
-import { SignUp } from './pages/Signup'
+import { SignUp } from './pages/SignUp'
 
 const Layout = () => (
     <>
