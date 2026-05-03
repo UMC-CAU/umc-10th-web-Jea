@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-require("dotenv").config();
+require("dotenv").config({ path: "../.env"});
 
 const app = express();
 app.use(cors({ origin: "http://localhost:5173" })); // Vite 기본 포트
@@ -55,11 +55,11 @@ app.post("/api/auth/login", async (req, res) => {
     const accessToken = jwt.sign(
         { email: user.email, nickname: user.nickname },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "3s" }
     );
     const refreshToken = jwt.sign(
         { email: user.email },
-        process.env.JWT_REFRESH_SECRET,
+        process.env.REFRESH_JWT_SECRET,
         { expiresIn: "7d" }
     );
 
@@ -77,7 +77,7 @@ app.post("/api/auth/refresh", (req, res) => {
     if (!refreshToken) return res.status(401).json({ message: "토큰 없음" });
 
     try {
-        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_JWT_SECRET);
         const accessToken = jwt.sign(
             { email: decoded.email },
             process.env.JWT_SECRET,
@@ -92,3 +92,68 @@ app.post("/api/auth/refresh", (req, res) => {
 app.listen(process.env.PORT, () => {
     console.log(`서버 실행 중: http://localhost:${process.env.PORT}`);
 });
+
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const session = require("express-session");
+
+// 세션 설정
+app.use(session({
+    secret: process.env.JWT_SECRET,
+    resave: false,
+    saveUninitialized: false,
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
+// Google 전략 설정
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL,
+}, async (accessToken, refreshToken, profile, done) => {
+    const email = profile.emails[0].value;
+    const nickname = profile.displayName;
+
+    // 이미 있는 유저면 그냥 로그인, 없으면 자동 회원가입
+    let user = users.find(u => u.email === email);
+    if (!user) {
+        users.push({ email, password: null, nickname });
+        saveUsers(users);
+    }
+
+    return done(null, { email, nickname });
+}));
+
+// 구글 로그인 시작
+app.get("/api/auth/google",
+    passport.authenticate("google", { scope: ["email", "profile"] })
+);
+
+// 구글 콜백
+app.get("/v1/auth/google/callback",
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    (req, res) => {
+        //console.log("JWT_SECRET:", process.env.JWT_SECRET); // ✅ 추가
+        //console.log("REFRESH_SECRET:", process.env.REFRESH_JWT_SECRET); // ✅ 추가
+        const user = req.user;
+
+        const accessToken = jwt.sign(
+            { email: user.email, nickname: user.nickname },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+        const refreshToken = jwt.sign(
+            { email: user.email },
+            process.env.REFRESH_JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        // 프론트로 토큰 전달
+        res.redirect(`http://localhost:5173/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
+    }
+);

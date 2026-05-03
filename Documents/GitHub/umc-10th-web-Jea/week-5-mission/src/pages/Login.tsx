@@ -35,7 +35,11 @@ export const Login = () => {
             </div>
 
             <div className="flex flex-col gap-3 w-80">
-                <button type="button" className="flex items-center justify-center gap-3 border border-neutral-600 rounded-lg py-3 text-white hover:bg-neutral-800 transition">
+                <button
+                    type="button"
+                    onClick={() => window.location.href = "http://localhost:8080/api/auth/google"}
+                    className="flex items-center justify-center gap-3 border border-neutral-600 rounded-lg py-3 text-white hover:bg-neutral-800 transition"
+                >
                     <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
                     구글 로그인
                 </button>

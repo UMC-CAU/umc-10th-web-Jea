@@ -7,6 +7,7 @@ import { SignUp } from './pages/SignUp'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { MyPage } from './pages/MyPage'
+import { AuthCallback } from './pages/AuthCallback'
 
 const Layout = () => (
     <>
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
             { index: true, element: <HomePage /> },
             { path: "/login", element: <Login /> },
             { path: "/signup", element: <SignUp /> },
+            { path: "/auth/callback", element: <AuthCallback /> }, // ✅ 밖으로 이동
             {
                 element: <ProtectedRoute />,
                 children: [
