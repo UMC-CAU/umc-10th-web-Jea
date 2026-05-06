@@ -28,9 +28,9 @@
 
 ## 👥 팀원 역할 분담
 
-디스코드 참고
+각 스프린트 별 역할배분 예정, 추후 일정은 디스코드 참고
 
-> 각자 담당 브랜치에서 작업 후 PR을 통해 `develop` 브랜치에 병합합니다.
+> 각자 담당 브랜치에서 작업 후 PR을 통해 `develop` 브랜치에 병합합니다. ex) featute/login ... 등
 
 ---
 
@@ -46,8 +46,9 @@
 
 ```bash
 git clone https://github.com/e2pi3/CAU-SWE-FE.git
-cd your-repo (clone 한 파일로 이동)
+cd CAU-SWE-FE
 ```
+clone 한 파일로 이동
 
 ### 2. 패키지 설치
 
@@ -77,7 +78,7 @@ flutter run
 ### 5. 내 브랜치로 이동 후 작업 시작
 
 ```bash
-# develop 브랜치 최신화
+# develop 브랜치 최신화 (main이 아닌 develop에서 pull 해주세요)
 git checkout develop
 git pull origin develop
 
@@ -160,14 +161,8 @@ git commit -m "chore: http 패키지 추가"
 ### PR 템플릿
 
 ```
-## 작업 내용
-- 
+## 작업 내용 
 
-## 스크린샷 (UI 변경 시)
-
-
-## 참고 사항
-- 
 ```
 
 ---
