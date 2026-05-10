@@ -8,10 +8,12 @@ export const AuthCallback = () => {
         const params = new URLSearchParams(window.location.search);
         const accessToken = params.get("accessToken");
         const refreshToken = params.get("refreshToken");
+        const nickname = params.get("nickname");
 
-        if (accessToken && refreshToken) {
+        if (accessToken && refreshToken && nickname) {
             localStorage.setItem("accessToken", accessToken);
             localStorage.setItem("refreshToken", refreshToken);
+            localStorage.setItem("nickname", nickname);
             navigate("/mypage");
         } else {
             navigate("/login");

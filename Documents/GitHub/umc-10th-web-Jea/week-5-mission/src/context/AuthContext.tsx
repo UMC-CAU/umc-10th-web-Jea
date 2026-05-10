@@ -4,6 +4,7 @@ import axiosInstance from "../api/axiosInstance";
 
 interface AuthContextType {
     accessToken: string | null;
+    nickname: string | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
@@ -15,6 +16,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [accessToken, setAccessToken] = useState<string | null>(
         localStorage.getItem("accessToken")
     );
+    const [nickname, setNickname] = useState<string | null>(
+        localStorage.getItem("nickname")
+    );
     const navigate = useNavigate();
 
     const login = async (email: string, password: string) => {
@@ -22,7 +26,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         localStorage.setItem("accessToken", res.data.accessToken);
         localStorage.setItem("refreshToken", res.data.refreshToken);
+        localStorage.setItem("nickname", res.data.nickname);
         setAccessToken(res.data.accessToken);
+        setNickname(res.data.nickname);
         navigate("/mypage");
     };
 
@@ -33,13 +39,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
+            localStorage.removeItem("nickname");
             setAccessToken(null);
+            setNickname(null);
             navigate("/");
         }
     };
 
     return (
-        <AuthContext.Provider value={{ accessToken, login, logout, isAuthenticated: !!accessToken }}>
+        <AuthContext.Provider value={{ accessToken, nickname, login, logout, isAuthenticated: !!accessToken }}>
             {children}
         </AuthContext.Provider>
     );

@@ -8,13 +8,19 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { MyPage } from './pages/MyPage'
 import { AuthCallback } from './pages/AuthCallback'
+import { useState } from 'react'
+import { LpDetail } from './pages/LpDetail'
 
-const Layout = () => (
-    <>
-        <Navbar />
-        <Outlet />
-    </>
-);
+const Layout = () => {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    return( 
+        <>
+            <Navbar onToggleSidebar={() => setSidebarOpen(prev => !prev)} />
+            <Outlet context={{ sidebarOpen, setSidebarOpen}}/>
+        </>
+    )
+};
 
 const router = createBrowserRouter([
     {
@@ -33,6 +39,7 @@ const router = createBrowserRouter([
                 element: <ProtectedRoute />,
                 children: [
                     { path: "/mypage", element: <MyPage /> },
+                    { path: "/lp/:lpId", element: <LpDetail /> },
                 ],
             },
         ],
