@@ -7,16 +7,19 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:developer';
+
+
 
 // 이 클래스는 그냥 나중에 따로 뺄까싶습니다
 class Cocktail {        // 여기가 일단 칵테일에 대한 구조 설계하는 클래스 (예시로 이름, 카테고리, 설명만있음)
   final String name;
-  final String category;
+  final String nameKo;
   final String description;
 
   Cocktail({
     required this.name,
-    required this.category,
+    required this.nameKo,
     required this.description,
   });
 
@@ -24,7 +27,7 @@ class Cocktail {        // 여기가 일단 칵테일에 대한 구조 설계하
   factory Cocktail.fromJson(Map<String, dynamic> json) {
     return Cocktail(
       name: json['name'],
-      category: json['category'],
+      nameKo: json['name_ko'],
       description: json['description'],
     );
   }
@@ -135,12 +138,15 @@ class _SearchScreenState extends State<SearchScreen> {
                                 leading: const Icon(Icons.local_bar,
                                     color: Colors.deepPurple),
                                 title: Text(cocktail.name,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                                subtitle: Text(cocktail.description),
-                                trailing: Text(cocktail.category,
-                                    style: const TextStyle(
-                                        color: Colors.grey, fontSize: 12)),
+                                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(cocktail.nameKo),
+                                    Text(cocktail.description,
+                                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                  ],
+                                ),
                               ),
                             );
                           },
