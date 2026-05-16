@@ -47,7 +47,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = false;
 
   // TODO: 백엔드 주소 확정되면 교체
-  static const String _baseUrl = 'http://localhost:8000';
+  static const String _baseUrl = 'http://localhost:8000'; // 지금은 로컬주소
 
   Future<void> _search(String query) async {
     final trimmed = query.trim();
@@ -60,8 +60,7 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: FastAPI 엔드포인트 경로 확정되면 교체
-      final uri = Uri.parse('$_baseUrl/cocktails/search?q=$trimmed');
+      final uri = Uri.parse('$_baseUrl/cocktails/search?q=$trimmed'); // 검색 API 호출
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
