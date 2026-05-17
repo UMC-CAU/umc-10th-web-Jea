@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Settings, User } from "lucide-react";
 import axiosInstance from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 
 interface UserProfile {
     id: number;
@@ -19,6 +20,7 @@ const fetchMe = async (): Promise<UserProfile> => {
 export const MyPage = () => {
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { setNickname: setNavNickname } = useAuth();
 
     const [isEditing, setIsEditing] = useState(false);
     const [nickname, setNickname] = useState("");
@@ -28,12 +30,15 @@ export const MyPage = () => {
     const { data: user, isLoading } = useQuery<UserProfile>({
         queryKey: ["me"],
         queryFn: fetchMe,
-        onSuccess: (data) => {
-            setNickname(data.nickname);
-            setBio(data.bio ?? "");
-            setPreviewImage(data.profileImage ?? "");
-        },
-    } as any);
+    });
+
+    useEffect(() => {
+        if (user) {
+            setNickname(user.nickname);
+            setBio(user.bio ?? "");
+            setPreviewImage(user.profileImage ?? "");
+        }
+    }, [user]);
 
     const updateMutation = useMutation({
         mutationFn: () =>
@@ -42,9 +47,20 @@ export const MyPage = () => {
                 bio: bio || null,
                 profileImage: previewImage || null,
             }),
+        onMutate: () => {
+            // 서버 응답 전에 Nav-Bar와 마이페이지 닉네임 즉시 변경
+            setNavNickname(nickname);
+            queryClient.setQueryData<UserProfile>(["me"], old =>
+                old ? { ...old, nickname, bio, profileImage: previewImage } : old
+            );
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["me"] });
             setIsEditing(false);
+        },
+        onError: () => {
+            // 실패 시 원래 값으로 롤백
+            queryClient.invalidateQueries({ queryKey: ["me"] });
         },
     });
 
@@ -151,7 +167,7 @@ export const MyPage = () => {
                                 <input
                                     value={bio}
                                     onChange={e => setBio(e.target.value)}
-                                    placeholder="프론트 짱"
+                                    placeholder="bio를 입력하세요 (선택)"
                                     className="bg-transparent border border-neutral-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-pink-500 transition"
                                 />
                                 <p className="text-xs text-neutral-500">{user?.email}</p>

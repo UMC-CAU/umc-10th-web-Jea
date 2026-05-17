@@ -225,6 +225,11 @@ app.get("/api/auth/me", authenticate, async (req, res) => {
     res.json(user);
 });
 
+app.delete("/api/auth/withdraw", authenticate, async (req, res) => {
+    await prisma.user.delete({ where: { id: req.user.id } });
+    res.json({ message: "탈퇴 완료" });
+});
+
 // Google OAuth
 app.get("/api/auth/google", passport.authenticate("google", { scope: ["email", "profile"] }));
 
@@ -301,7 +306,7 @@ app.get("/v1/lps", async (req, res) => {
         data: data.map(lp => ({
             ...lp,
             tags: lp.tags ? JSON.parse(lp.tags) : [],
-            artist: lp.author.nickname,
+            artist: lp.artist ?? lp.author.nickname,
         })),
         nextCursor,
     });
@@ -330,12 +335,13 @@ app.get("/v1/lps", async (req, res) => {
  *       401: { description: 인증 필요 }
  */
 app.post("/v1/lps", authenticate, async (req, res) => {
-    const { title, content, cover, tags } = req.body;
+    const { title, artist, content, cover, tags } = req.body;
     if (!title) return res.status(400).json({ message: "제목은 필수입니다." });
 
     const lp = await prisma.lp.create({
         data: {
             title,
+            artist: artist || null,
             content: content || "",
             cover: cover || "",
             tags: tags ? JSON.stringify(tags) : "[]",
@@ -347,7 +353,7 @@ app.post("/v1/lps", authenticate, async (req, res) => {
     res.status(201).json({
         ...lp,
         tags: JSON.parse(lp.tags),
-        artist: lp.author.nickname,
+        artist: lp.artist ?? lp.author.nickname,
     });
 });
 
@@ -373,7 +379,11 @@ app.get("/v1/lps/:id", async (req, res) => {
         include: { author: { select: { nickname: true } } },
     });
     if (!lp) return res.status(404).json({ message: "LP를 찾을 수 없습니다." });
-    res.json({ ...lp, tags: lp.tags ? JSON.parse(lp.tags) : [], artist: lp.author.nickname });
+    res.json({
+        ...lp,
+        tags: lp.tags ? JSON.parse(lp.tags) : [],
+        artist: lp.artist ?? lp.author.nickname,
+    });
 });
 
 /**
@@ -407,13 +417,21 @@ app.patch("/v1/lps/:id", authenticate, async (req, res) => {
     if (!lp) return res.status(404).json({ message: "LP를 찾을 수 없습니다." });
     if (lp.authorId !== req.user.id) return res.status(403).json({ message: "권한이 없습니다." });
 
-    const { tags, ...rest } = req.body;
+    const { tags, artist, ...rest } = req.body;
     const updated = await prisma.lp.update({
         where: { id: Number(req.params.id) },
-        data: { ...rest, ...(tags && { tags: JSON.stringify(tags) }) },
+        data: {
+            ...rest,
+            ...(artist !== undefined && { artist }),
+            ...(tags && { tags: JSON.stringify(tags) }),
+        },
         include: { author: { select: { nickname: true } } },
     });
-    res.json({ ...updated, tags: JSON.parse(updated.tags), artist: updated.author.nickname });
+    res.json({
+        ...updated,
+        tags: JSON.parse(updated.tags),
+        artist: updated.artist ?? updated.author.nickname,
+    });
 });
 
 /**

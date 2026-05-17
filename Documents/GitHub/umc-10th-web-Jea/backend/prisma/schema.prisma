@@ -23,6 +23,7 @@ model User {
 model Lp {
   id        Int       @id @default(autoincrement())
   title     String
+  artist    String?
   content   String?
   cover     String?
   tags      String?

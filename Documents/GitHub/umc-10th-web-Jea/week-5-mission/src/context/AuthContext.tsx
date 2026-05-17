@@ -1,13 +1,13 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance";
+import { createContext, useContext, useState } from "react";
+import type { ReactNode } from "react";
 
 interface AuthContextType {
     accessToken: string | null;
     nickname: string | null;
-    login: (email: string, password: string) => Promise<void>;
-    logout: () => Promise<void>;
     isAuthenticated: boolean;
+    login: (accessToken: string, refreshToken: string, nickname: string) => void;
+    logout: () => void;
+    setNickname: (nickname: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -16,38 +16,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [accessToken, setAccessToken] = useState<string | null>(
         localStorage.getItem("accessToken")
     );
-    const [nickname, setNickname] = useState<string | null>(
+    const [nickname, setNicknameState] = useState<string | null>(
         localStorage.getItem("nickname")
     );
-    const navigate = useNavigate();
 
-    const login = async (email: string, password: string) => {
-        const res = await axiosInstance.post("/api/auth/login", { email, password });
-
-        localStorage.setItem("accessToken", res.data.accessToken);
-        localStorage.setItem("refreshToken", res.data.refreshToken);
-        localStorage.setItem("nickname", res.data.nickname);
-        setAccessToken(res.data.accessToken);
-        setNickname(res.data.nickname);
-        navigate("/mypage");
+    const login = (token: string, refreshToken: string, nick: string) => {
+        localStorage.setItem("accessToken", token);
+        localStorage.setItem("refreshToken", refreshToken);
+        localStorage.setItem("nickname", nick);
+        setAccessToken(token);
+        setNicknameState(nick);
     };
 
-    const logout = async () => {
-        try {
-            await axiosInstance.post("/api/auth/logout");
-        } catch {
-        } finally {
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-            localStorage.removeItem("nickname");
-            setAccessToken(null);
-            setNickname(null);
-            navigate("/");
-        }
+    const logout = () => {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("nickname");
+        setAccessToken(null);
+        setNicknameState(null);
+    };
+
+    const setNickname = (nick: string) => {
+        localStorage.setItem("nickname", nick);
+        setNicknameState(nick);
     };
 
     return (
-        <AuthContext.Provider value={{ accessToken, nickname, login, logout, isAuthenticated: !!accessToken }}>
+        <AuthContext.Provider value={{
+            accessToken,
+            nickname,
+            isAuthenticated: !!accessToken,
+            login,
+            logout,
+            setNickname,
+        }}>
             {children}
         </AuthContext.Provider>
     );

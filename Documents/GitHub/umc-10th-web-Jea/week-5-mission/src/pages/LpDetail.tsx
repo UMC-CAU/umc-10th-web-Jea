@@ -239,6 +239,9 @@ export const LpDetail = () => {
             queryClient.invalidateQueries({ queryKey: ["lps"] });
             setIsEditing(false);
         },
+        onError: () => {
+            setIsEditing(false);
+        },
     });
 
     const deleteMutation = useMutation({
@@ -251,9 +254,23 @@ export const LpDetail = () => {
 
     const likeMutation = useMutation({
         mutationFn: () => axiosInstance.post(`/v1/lps/${lpId}/like`),
-        onSuccess: () => {
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ["lp", lpId] });
+            const previous = queryClient.getQueryData<LP>(["lp", lpId]);
+            queryClient.setQueryData<LP>(["lp", lpId], old =>
+                old ? { ...old, likes: old.likes + (liked ? -1 : 1) } : old
+            );
+            setLiked(prev => !prev);
+            return { previous };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(["lp", lpId], context.previous);
+            }
+            setLiked(prev => !prev);
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["lp", lpId] });
-            setLiked(true);
         },
     });
 
@@ -291,7 +308,6 @@ export const LpDetail = () => {
         setEditArtist(lp?.artist || "");
         setIsEditing(true);
     };
-
     const handleDelete = () => {
         if (confirm("정말 삭제하시겠어요?")) deleteMutation.mutate();
     };
@@ -436,7 +452,7 @@ export const LpDetail = () => {
                             value={editArtist}
                             onChange={e => setEditArtist(e.target.value)}
                             className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-white outline-none focus:border-pink-500 text-sm w-full mb-4"
-                            placeholder="아티스트"
+                            placeholder="아티스트명"
                         />
                     )}
 
@@ -461,10 +477,10 @@ export const LpDetail = () => {
 
                     <div className="flex items-center gap-2 pt-4 border-t border-neutral-800 mb-8">
                         <button
-                            onClick={() => !liked && likeMutation.mutate()}
-                            disabled={liked || likeMutation.isPending}
+                            onClick={() => likeMutation.mutate()}
+                            disabled={likeMutation.isPending}
                             className={`flex items-center gap-1.5 transition ${
-                                liked ? "text-pink-500 cursor-default" : "text-neutral-400 hover:text-pink-500"
+                                liked ? "text-pink-500" : "text-neutral-400 hover:text-pink-500"
                             }`}
                             aria-label="좋아요"
                         >

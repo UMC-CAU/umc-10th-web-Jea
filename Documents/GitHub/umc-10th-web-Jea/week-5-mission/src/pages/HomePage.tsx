@@ -44,9 +44,10 @@ const AddModal = ({
     onAdd,
 }: {
     onClose: () => void;
-    onAdd: (lp: { title: string; content: string; tags: string[]; cover: string }) => void;
+    onAdd: (lp: { title: string; artist: string; content: string; tags: string[]; cover: string }) => void;
 }) => {
     const [title, setTitle] = useState("");
+    const [artist, setArtist] = useState("");
     const [content, setContent] = useState("");
     const [tagInput, setTagInput] = useState("");
     const [tags, setTags] = useState<string[]>([]);
@@ -77,7 +78,7 @@ const AddModal = ({
 
     const handleSubmit = () => {
         if (!title.trim()) return;
-        onAdd({ title: title.trim(), content, tags, cover: coverPreview });
+        onAdd({ title: title.trim(), artist: artist.trim(), content, tags, cover: coverPreview });
         onClose();
     };
 
@@ -162,6 +163,12 @@ const AddModal = ({
                         value={title}
                         onChange={e => setTitle(e.target.value)}
                         placeholder="LP Name"
+                        className="w-full bg-transparent border-b border-neutral-700 py-2 text-sm text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
+                    />
+                    <input
+                        value={artist}
+                        onChange={e => setArtist(e.target.value)}
+                        placeholder="Artist (선택 - 비우면 닉네임으로 등록)"
                         className="w-full bg-transparent border-b border-neutral-700 py-2 text-sm text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
                     />
                     <input
@@ -288,7 +295,7 @@ export const HomePage = () => {
     }, [handleObserver]);
 
     const addMutation = useMutation({
-        mutationFn: (newLp: { title: string; content: string; tags: string[]; cover: string }) =>
+        mutationFn: (newLp: { title: string; artist: string; content: string; tags: string[]; cover: string }) =>
             axiosInstance.post("/v1/lps", newLp),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["lps"] });
