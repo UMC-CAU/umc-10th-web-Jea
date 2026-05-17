@@ -3,6 +3,8 @@ import { Plus, X, User, LogOut, Search, RefreshCw } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
+import { ConfirmModal } from "../components/navbar";
 
 interface LP {
     id: number;
@@ -13,7 +15,6 @@ interface LP {
     createdAt: string;
 }
 
-// 서버 응답이 배열이므로 페이지 단위로 래핑하는 타입
 interface LPPage {
     data: LP[];
     nextCursor: number | null;
@@ -24,7 +25,6 @@ interface OutletContext {
     setSidebarOpen: (v: boolean) => void;
 }
 
-/* ── API: 서버는 LP[] 배열을 그대로 반환 ── */
 const fetchLps = async ({
     sort,
     cursor,
@@ -35,95 +35,206 @@ const fetchLps = async ({
     const params = new URLSearchParams({ sort });
     if (cursor !== null) params.append("cursor", String(cursor));
     const res = await axiosInstance.get(`/v1/lps?${params.toString()}`);
-
-    // 서버가 LP[] 배열로 응답 → LPPage로 래핑
-    if (Array.isArray(res.data)) {
-        return { data: res.data, nextCursor: null };
-    }
-    // 서버가 { data, nextCursor } 구조로 응답하는 경우
+    if (Array.isArray(res.data)) return { data: res.data, nextCursor: null };
     return res.data;
 };
 
-/* ── AddModal ── */
 const AddModal = ({
     onClose,
     onAdd,
 }: {
     onClose: () => void;
-    onAdd: (lp: { title: string; artist: string; cover: string }) => void;
+    onAdd: (lp: { title: string; content: string; tags: string[]; cover: string }) => void;
 }) => {
     const [title, setTitle] = useState("");
-    const [artist, setArtist] = useState("");
-    const [cover, setCover] = useState("");
+    const [content, setContent] = useState("");
+    const [tagInput, setTagInput] = useState("");
+    const [tags, setTags] = useState<string[]>([]);
+    const [coverPreview, setCoverPreview] = useState<string>("");
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setCoverPreview(URL.createObjectURL(file));
+    };
+
+    const handleAddTag = () => {
+        const trimmed = tagInput.trim();
+        if (!trimmed || tags.includes(trimmed) || tags.length >= 5) return;
+        setTags(prev => [...prev, trimmed]);
+        setTagInput("");
+    };
+
+    const handleRemoveTag = (tag: string) => {
+        setTags(prev => prev.filter(t => t !== tag));
+    };
+
+    const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.target === overlayRef.current) onClose();
+    };
 
     const handleSubmit = () => {
-        if (!title || !artist) return;
-        onAdd({ title, artist, cover });
+        if (!title.trim()) return;
+        onAdd({ title: title.trim(), content, tags, cover: coverPreview });
         onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 w-full max-w-sm flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                    <span className="text-white font-bold text-lg">곡 추가하기</span>
-                    <button onClick={onClose}>
-                        <X size={20} className="text-neutral-400 hover:text-white" />
+        <div
+            ref={overlayRef}
+            onClick={handleOverlayClick}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
+        >
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-sm flex flex-col overflow-hidden">
+                <div
+                    className="relative w-full flex items-center justify-center py-8 cursor-pointer"
+                    style={{ background: "radial-gradient(ellipse at center, #1a1a1a 0%, #0d0d0d 100%)" }}
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <button
+                        onClick={e => { e.stopPropagation(); onClose(); }}
+                        className="absolute top-3 right-3 text-neutral-400 hover:text-white transition z-10"
+                    >
+                        <X size={20} />
                     </button>
+
+                    <div
+                        className="relative rounded-full overflow-hidden"
+                        style={{
+                            width: 140,
+                            height: 140,
+                            boxShadow: "0 0 0 3px #2a2a2a, 0 0 0 6px #111, 0 8px 32px rgba(0,0,0,0.8)",
+                        }}
+                    >
+                        {coverPreview ? (
+                            <img src={coverPreview} alt="cover" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
+                                <span className="text-neutral-600 text-xs text-center leading-relaxed px-3">
+                                    클릭하여<br />커버 선택
+                                </span>
+                            </div>
+                        )}
+                        <div
+                            className="absolute inset-0 rounded-full pointer-events-none"
+                            style={{
+                                background: `repeating-radial-gradient(
+                                    circle at 50% 50%,
+                                    transparent 0px, transparent 5px,
+                                    rgba(0,0,0,0.15) 5px, rgba(0,0,0,0.15) 6px
+                                )`,
+                            }}
+                        />
+                        <div
+                            className="absolute rounded-full"
+                            style={{
+                                width: "30%", height: "30%",
+                                top: "50%", left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                background: "radial-gradient(circle, #1a1a1a 60%, #0d0d0d 100%)",
+                                boxShadow: "0 0 0 2px #333",
+                            }}
+                        >
+                            <div
+                                className="absolute rounded-full bg-neutral-950 border border-neutral-700"
+                                style={{
+                                    width: 10, height: 10,
+                                    top: "50%", left: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange}
+                    />
                 </div>
-                <div className="flex flex-col gap-3">
+
+                <div className="px-5 py-5 flex flex-col gap-3">
                     <input
                         value={title}
                         onChange={e => setTitle(e.target.value)}
-                        placeholder="곡 제목"
-                        className="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
+                        placeholder="LP Name"
+                        className="w-full bg-transparent border-b border-neutral-700 py-2 text-sm text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
                     />
                     <input
-                        value={artist}
-                        onChange={e => setArtist(e.target.value)}
-                        placeholder="아티스트"
-                        className="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                        placeholder="LP Content"
+                        className="w-full bg-transparent border-b border-neutral-700 py-2 text-sm text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
                     />
-                    <input
-                        value={cover}
-                        onChange={e => setCover(e.target.value)}
-                        placeholder="앨범 커버 URL (선택)"
-                        className="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
-                    />
+                    <div className="flex items-center gap-2">
+                        <input
+                            value={tagInput}
+                            onChange={e => setTagInput(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && handleAddTag()}
+                            placeholder="LP Tag"
+                            className="flex-1 bg-transparent border-b border-neutral-700 py-2 text-sm text-white placeholder-neutral-500 outline-none focus:border-pink-500 transition"
+                        />
+                        <button
+                            onClick={handleAddTag}
+                            disabled={!tagInput.trim() || tags.length >= 5}
+                            className="px-3 py-1.5 bg-pink-500 hover:bg-pink-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded-md transition shrink-0"
+                        >
+                            Add
+                        </button>
+                    </div>
+
+                    {tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {tags.map(tag => (
+                                <span
+                                    key={tag}
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-neutral-800 text-neutral-300 text-xs rounded-full"
+                                >
+                                    {tag}
+                                    <button
+                                        onClick={() => handleRemoveTag(tag)}
+                                        className="text-neutral-500 hover:text-white transition"
+                                    >
+                                        <X size={10} />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleSubmit}
+                        disabled={!title.trim()}
+                        className="w-full py-3 rounded-lg text-sm font-bold transition mt-1 bg-pink-500 hover:bg-pink-600 disabled:opacity-40 disabled:cursor-not-allowed text-white"
+                    >
+                        Add LP
+                    </button>
                 </div>
-                <button
-                    onClick={handleSubmit}
-                    disabled={!title || !artist}
-                    className={`py-3 rounded-lg font-bold transition ${
-                        title && artist
-                            ? "bg-pink-500 hover:bg-pink-600 text-white"
-                            : "bg-neutral-700 text-neutral-500 cursor-not-allowed"
-                    }`}
-                >
-                    추가하기
-                </button>
             </div>
         </div>
     );
 };
 
-/* ── Skeleton ── */
 const SkeletonCard = () => (
     <div className="aspect-square rounded-lg bg-neutral-800 animate-pulse" />
 );
 
-/* ── HomePage ── */
 export const HomePage = () => {
     const [showModal, setShowModal] = useState(false);
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
     const [search, setSearch] = useState("");
     const navigate = useNavigate();
     const { sidebarOpen, setSidebarOpen } = useOutletContext<OutletContext>();
+    const { logout } = useAuth();
     const sidebarRef = useRef<HTMLDivElement>(null);
     const sentinelRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
 
-    /* ── 사이드바 외부 클릭 닫기 ── */
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
@@ -134,7 +245,6 @@ export const HomePage = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [sidebarOpen]);
 
-    /* ── useInfiniteQuery ── */
     const {
         data,
         isLoading,
@@ -148,21 +258,17 @@ export const HomePage = () => {
         queryFn: ({ pageParam }: { pageParam: number | null }) =>
             fetchLps({ sort, cursor: pageParam }),
         initialPageParam: null as number | null,
-        getNextPageParam: (lastPage: LPPage) =>
-            lastPage.nextCursor ?? undefined,
+        getNextPageParam: (lastPage: LPPage) => lastPage.nextCursor ?? undefined,
         staleTime: 1000 * 60,
         gcTime: 1000 * 60 * 5,
     });
 
-    /* ── 모든 페이지 LP 합산 ── */
     const allLps: LP[] = data?.pages.flatMap((page: LPPage) => page.data) ?? [];
 
-    /* ── 검색 필터 ── */
     const filtered = allLps.filter(
         lp => lp.title.includes(search) || lp.artist.includes(search)
     );
 
-    /* ── IntersectionObserver → fetchNextPage ── */
     const handleObserver = useCallback(
         (entries: IntersectionObserverEntry[]) => {
             const [entry] = entries;
@@ -181,12 +287,19 @@ export const HomePage = () => {
         return () => observer.disconnect();
     }, [handleObserver]);
 
-    /* ── LP 추가 mutation ── */
     const addMutation = useMutation({
-        mutationFn: (newLp: { title: string; artist: string; cover: string }) =>
+        mutationFn: (newLp: { title: string; content: string; tags: string[]; cover: string }) =>
             axiosInstance.post("/v1/lps", newLp),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["lps"] });
+        },
+    });
+
+    const withdrawMutation = useMutation({
+        mutationFn: () => axiosInstance.delete("/api/auth/withdraw"),
+        onSuccess: () => {
+            logout();
+            navigate("/login");
         },
     });
 
@@ -194,7 +307,6 @@ export const HomePage = () => {
         <div className="flex" style={{ minHeight: "calc(100vh - 56px)" }}>
             {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30" />}
 
-            {/* ── 사이드바 ── */}
             <div
                 ref={sidebarRef}
                 className={`fixed top-14 left-0 bottom-0 w-44 bg-neutral-900 border-r border-neutral-800 py-6 px-3 flex flex-col z-40 transition-transform duration-300 ${
@@ -214,15 +326,16 @@ export const HomePage = () => {
                         마이페이지
                     </button>
                 </div>
-                <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-white transition text-left">
+                <button
+                    onClick={() => setShowWithdrawModal(true)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-white transition text-left"
+                >
                     <LogOut size={16} className="flex-shrink-0" />
                     탈퇴하기
                 </button>
             </div>
 
-            {/* ── 메인 ── */}
             <main className="flex-1 bg-neutral-950 px-4 md:px-8 py-6">
-                {/* 정렬 토글 + 검색 */}
                 <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
                     <div className="flex">
                         <button
@@ -247,7 +360,6 @@ export const HomePage = () => {
                         </button>
                     </div>
 
-                    {/* 검색 인풋 */}
                     <div className="relative flex-1 min-w-[160px] max-w-xs">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
                         <input
@@ -259,16 +371,12 @@ export const HomePage = () => {
                     </div>
                 </div>
 
-                {/* 로딩 — 첫 페이지 스켈레톤 */}
                 {isLoading && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                        {Array.from({ length: 10 }).map((_, i) => (
-                            <SkeletonCard key={i} />
-                        ))}
+                        {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
                     </div>
                 )}
 
-                {/* 에러 상태 */}
                 {isError && (
                     <div className="flex flex-col items-center justify-center h-64 gap-4">
                         <p className="text-neutral-400 text-sm">데이터를 불러오지 못했어요.</p>
@@ -282,7 +390,6 @@ export const HomePage = () => {
                     </div>
                 )}
 
-                {/* LP 그리드 */}
                 {!isLoading && !isError && (
                     filtered.length === 0 ? (
                         <div className="flex items-center justify-center h-64 text-neutral-500 text-sm">
@@ -315,19 +422,14 @@ export const HomePage = () => {
                                 ))}
                             </div>
 
-                            {/* 다음 페이지 로딩 스켈레톤 */}
                             {isFetchingNextPage && (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-3">
-                                    {Array.from({ length: 5 }).map((_, i) => (
-                                        <SkeletonCard key={`next-${i}`} />
-                                    ))}
+                                    {Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={`next-${i}`} />)}
                                 </div>
                             )}
 
-                            {/* 무한 스크롤 sentinel */}
                             <div ref={sentinelRef} className="h-4 mt-4" />
 
-                            {/* 마지막 페이지 안내 */}
                             {!hasNextPage && allLps.length > 0 && (
                                 <p className="text-center text-neutral-600 text-xs mt-6 pb-4">
                                     모든 LP를 불러왔어요.
@@ -338,7 +440,6 @@ export const HomePage = () => {
                 )}
             </main>
 
-            {/* + 버튼 */}
             <button
                 onClick={() => setShowModal(true)}
                 className="fixed bottom-6 right-6 w-12 h-12 bg-pink-500 hover:bg-pink-600 rounded-full flex items-center justify-center shadow-lg transition z-40"
@@ -350,6 +451,17 @@ export const HomePage = () => {
                 <AddModal
                     onClose={() => setShowModal(false)}
                     onAdd={lp => addMutation.mutate(lp)}
+                />
+            )}
+
+            {showWithdrawModal && (
+                <ConfirmModal
+                    message="정말 탈퇴하시겠습니까?"
+                    onConfirm={() => {
+                        setShowWithdrawModal(false);
+                        withdrawMutation.mutate();
+                    }}
+                    onCancel={() => setShowWithdrawModal(false)}
                 />
             )}
         </div>

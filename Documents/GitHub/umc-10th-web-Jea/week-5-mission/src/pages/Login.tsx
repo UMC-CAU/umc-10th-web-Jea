@@ -1,29 +1,33 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "../hooks/useForm";
 import { useAuth } from "../context/AuthContext";
-
-
-
-
+import axiosInstance from "../api/axiosInstance";
 
 export const Login = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
-    
+
     const { values, handleChange, isEmailValid, isPasswordValid, isFormValid } = useForm({
         email: "",
-        password: ""
+        password: "",
     });
 
-    const handleLogin = async () => {
-        try {
-            await login(values.email, values.password);
+    const loginMutation = useMutation({
+        mutationFn: () =>
+            axiosInstance.post("/api/auth/login", {
+                email: values.email,
+                password: values.password,
+            }),
+        onSuccess: (res) => {
+            login(res.data.accessToken, res.data.refreshToken, res.data.nickname);
             navigate("/");
-        } catch {
+        },
+        onError: () => {
             alert("이메일 또는 비밀번호가 올바르지 않습니다.");
-        }
-    };
+        },
+    });
 
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6 px-4">
@@ -52,13 +56,15 @@ export const Login = () => {
 
                 <div className="flex flex-col gap-1.5">
                     <input
-                        name="email" 
+                        name="email"
                         type="email"
                         value={values.email}
                         onChange={handleChange}
                         placeholder="이메일을 입력해주세요!"
                         className={`bg-transparent border rounded-lg px-4 py-3 text-white placeholder-neutral-500 outline-none transition ${
-                            values.email && !isEmailValid ? 'border-red-500' : 'border-neutral-600 focus:border-pink-500'
+                            values.email && !isEmailValid
+                                ? "border-red-500"
+                                : "border-neutral-600 focus:border-pink-500"
                         }`}
                     />
                     <div className="h-4">
@@ -76,7 +82,9 @@ export const Login = () => {
                         onChange={handleChange}
                         placeholder="비밀번호를 입력해주세요!"
                         className={`bg-transparent border rounded-lg px-4 py-3 text-white placeholder-neutral-500 outline-none transition ${
-                            values.password && !isPasswordValid ? 'border-red-500' : 'border-neutral-600 focus:border-pink-500'
+                            values.password && !isPasswordValid
+                                ? "border-red-500"
+                                : "border-neutral-600 focus:border-pink-500"
                         }`}
                     />
                     <div className="h-4">
@@ -86,16 +94,16 @@ export const Login = () => {
                     </div>
                 </div>
 
-                <button 
-                    onClick={handleLogin}
-                    disabled={!isFormValid}
+                <button
+                    onClick={() => loginMutation.mutate()}
+                    disabled={!isFormValid || loginMutation.isPending}
                     className={`mt-4 rounded-lg py-3 font-bold transition text-white ${
-                        isFormValid 
-                        ? 'bg-pink-500 hover:bg-pink-600 cursor-pointer' 
-                        : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                        isFormValid && !loginMutation.isPending
+                            ? "bg-pink-500 hover:bg-pink-600 cursor-pointer"
+                            : "bg-neutral-800 text-neutral-500 cursor-not-allowed"
                     }`}
                 >
-                    로그인
+                    {loginMutation.isPending ? "로그인 중..." : "로그인"}
                 </button>
             </div>
         </div>

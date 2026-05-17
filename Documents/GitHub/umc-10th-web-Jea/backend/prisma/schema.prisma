@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  password     String?
+  nickname     String
+  bio          String?   
+  profileImage String?      
+  createdAt    DateTime  @default(now())
+  lps          Lp[]
+  comments     Comment[]
+  likes        Like[]
+}
+
+model Lp {
+  id        Int       @id @default(autoincrement())
+  title     String
+  content   String?
+  cover     String?
+  tags      String?
+  likes     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  author    User      @relation(fields: [authorId], references: [id])
+  authorId  Int
+  comments  Comment[]
+  likedBy   Like[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  lp        Lp       @relation(fields: [lpId], references: [id], onDelete: Cascade)
+  lpId      Int
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+}
+
+model Like {
+  id     Int  @id @default(autoincrement())
+  lp     Lp   @relation(fields: [lpId], references: [id], onDelete: Cascade)
+  lpId   Int
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  @@unique([lpId, userId])
+}
