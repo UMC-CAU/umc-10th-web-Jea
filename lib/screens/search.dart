@@ -1,5 +1,5 @@
 // lib/screens/search.dart
-// 칵테일 검색창에 대한 코드
+// 칵테일 검색하면 나오는 조회 목록에 대한 코드
 // 변수 앞에 _가 붙는건 dart언어에서 private 변수선언 같은거라네요
 
 
@@ -10,24 +10,23 @@ import 'package:http/http.dart' as http;
 
 
 
-// 이 클래스는 그냥 나중에 따로 뺄까싶습니다
-class Cocktail {        // 여기가 일단 칵테일에 대한 구조 설계하는 클래스 (예시로 이름, 카테고리, 설명만있음)
+class Cocktail {        // 칵테일 목록만 조회하기위해 이름과 잔 종류만 가져옴
   final String name;
   final String nameKo;
-  final String description;
+  final String glassType;
 
   Cocktail({
     required this.name,
     required this.nameKo,
-    required this.description,
+    required this.glassType,
   });
 
-  // TODO: 백엔드 응답 JSON 구조 확정되면 필드명 맞춰서 수정
+  // json 응답 구조 관련
   factory Cocktail.fromJson(Map<String, dynamic> json) {
     return Cocktail(
       name: json['name'],
       nameKo: json['name_ko'],
-      description: json['description'],
+      glassType: json['glass_type'],
     );
   }
 }
@@ -141,7 +140,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(cocktail.nameKo),
-                                    Text(cocktail.description,
+                                    Text(cocktail.glassType,
                                       style: const TextStyle(color: Colors.grey, fontSize: 12)),
                                   ],
                                 ),
