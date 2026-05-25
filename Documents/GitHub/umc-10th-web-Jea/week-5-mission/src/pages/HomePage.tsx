@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, X, User, LogOut, Search, RefreshCw } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";import { Plus, X, User, LogOut, Search, RefreshCw } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import { ConfirmModal } from "../components/navbar";
+import useThrottle from "../hooks/useThrottle";
 
 interface LP {
     id: number;
@@ -276,6 +276,24 @@ export const HomePage = () => {
         lp => lp.title.includes(search) || lp.artist.includes(search)
     );
 
+    const [scrollY, setScrollY] = useState(0);
+    const throttledScrollY = useThrottle(scrollY, 1000);
+
+    useEffect(() => {
+        const handleScroll = () => setScrollY(window.scrollY);
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    useEffect(() => {
+        const sentinel = sentinelRef.current;
+        if (!sentinel) return;
+        const rect = sentinel.getBoundingClientRect();
+        if (rect.top <= window.innerHeight && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [throttledScrollY, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
     const handleObserver = useCallback(
         (entries: IntersectionObserverEntry[]) => {
             const [entry] = entries;
@@ -321,7 +339,7 @@ export const HomePage = () => {
                 }`}
             >
                 <div className="flex flex-col gap-1 flex-1">
-                    <button onClick-{() => {navigate("/search"); setSidebarOpen(false);}} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white hover:bg-neutral-800 transition text-left">
+                    <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white hover:bg-neutral-800 transition text-left">
                         <Search size={16} className="text-neutral-400 flex-shrink-0" />
                         찾기
                     </button>
