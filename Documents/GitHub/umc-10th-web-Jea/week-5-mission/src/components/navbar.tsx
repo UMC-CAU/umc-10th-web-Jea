@@ -85,7 +85,7 @@ const Navbar = ({ onToggleSidebar }: { onToggleSidebar?: () => void }) => {
                         </button>
                     </div>
                 ) : (
-                    <button onClick={() => setShowSearch(true)} className="text-white hover:text-pink-500 transition">
+                    <button onClick={() => navigate("/search")} className="text-white hover:text-pink-500 transition">
                         <Search size={20} />
                     </button>
                 )}

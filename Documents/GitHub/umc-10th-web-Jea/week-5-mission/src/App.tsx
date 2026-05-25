@@ -10,6 +10,7 @@ import { MyPage } from './pages/MyPage'
 import { AuthCallback } from './pages/AuthCallback'
 import { useState } from 'react'
 import { LpDetail } from './pages/LpDetail'
+import { SearchPage } from './pages/SearchPage'
 
 const Layout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,7 +27,7 @@ const router = createBrowserRouter([
     {
         path: "/",
         element: (
-            <AuthProvider>  {/* ✅ Router 안에서 AuthProvider 감싸기 */}
+            <AuthProvider>
                 <Layout />
             </AuthProvider>
         ),
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
                 children: [
                     { path: "/mypage", element: <MyPage /> },
                     { path: "/lp/:lpId", element: <LpDetail /> },
+                    { path: "/search", element: <SearchPage /> },
                 ],
             },
         ],

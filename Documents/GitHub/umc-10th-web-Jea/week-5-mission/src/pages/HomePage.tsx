@@ -321,7 +321,7 @@ export const HomePage = () => {
                 }`}
             >
                 <div className="flex flex-col gap-1 flex-1">
-                    <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white hover:bg-neutral-800 transition text-left">
+                    <button onClick-{() => {navigate("/search"); setSidebarOpen(false);}} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white hover:bg-neutral-800 transition text-left">
                         <Search size={16} className="text-neutral-400 flex-shrink-0" />
                         찾기
                     </button>

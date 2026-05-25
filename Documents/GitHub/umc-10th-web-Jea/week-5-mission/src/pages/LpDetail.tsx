@@ -11,6 +11,7 @@ interface LP {
     authorId: number;
     cover: string;
     likes: number;
+    likedByMe?: boolean;
     createdAt: string;
     description?: string;
     tags?: string[];
@@ -169,7 +170,6 @@ export const LpDetail = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState("");
     const [editArtist, setEditArtist] = useState("");
-    const [liked, setLiked] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
     const [order, setOrder] = useState<"newest" | "oldest">("newest");
     const [commentText, setCommentText] = useState("");
@@ -257,17 +257,17 @@ export const LpDetail = () => {
         onMutate: async () => {
             await queryClient.cancelQueries({ queryKey: ["lp", lpId] });
             const previous = queryClient.getQueryData<LP>(["lp", lpId]);
-            queryClient.setQueryData<LP>(["lp", lpId], old =>
-                old ? { ...old, likes: old.likes + (liked ? -1 : 1) } : old
-            );
-            setLiked(prev => !prev);
+            queryClient.setQueryData<LP>(["lp", lpId], old => {
+                if (!old) return old;
+                const isLiked = old.likedByMe ?? false;
+                return { ...old, likes: old.likes + (isLiked ? -1 : 1), likedByMe: !isLiked };
+            });
             return { previous };
         },
         onError: (_err, _vars, context) => {
             if (context?.previous) {
                 queryClient.setQueryData(["lp", lpId], context.previous);
             }
-            setLiked(prev => !prev);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["lp", lpId] });
@@ -281,6 +281,9 @@ export const LpDetail = () => {
             queryClient.invalidateQueries({ queryKey: ["lpComments", lpId, order] });
             setCommentText("");
         },
+        onError: () => {
+            alert("댓글 작성에 실패했어요. 다시 시도해주세요.");
+        },
     });
 
     const editCommentMutation = useMutation({
@@ -293,6 +296,10 @@ export const LpDetail = () => {
             setEditingCommentId(null);
             setEditingCommentText("");
         },
+        onError: () => {
+            alert("댓글 수정에 실패했어요. 다시 시도해주세요.");
+            setEditingCommentId(null);
+        },
     });
 
     const deleteCommentMutation = useMutation({
@@ -300,6 +307,9 @@ export const LpDetail = () => {
             axiosInstance.delete(`/v1/lps/${lpId}/comments/${commentId}`),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["lpComments", lpId, order] });
+        },
+        onError: () => {
+            alert("댓글 삭제에 실패했어요. 다시 시도해주세요.");
         },
     });
 
@@ -480,11 +490,11 @@ export const LpDetail = () => {
                             onClick={() => likeMutation.mutate()}
                             disabled={likeMutation.isPending}
                             className={`flex items-center gap-1.5 transition ${
-                                liked ? "text-pink-500" : "text-neutral-400 hover:text-pink-500"
+                                lp?.likedByMe ? "text-pink-500" : "text-neutral-400 hover:text-pink-500"
                             }`}
                             aria-label="좋아요"
                         >
-                            <Heart size={20} fill={liked ? "currentColor" : "none"} />
+                            <Heart size={20} fill={lp?.likedByMe ? "currentColor" : "none"} />
                             <span className="text-sm font-medium">{lp?.likes ?? 0}</span>
                         </button>
                     </div>

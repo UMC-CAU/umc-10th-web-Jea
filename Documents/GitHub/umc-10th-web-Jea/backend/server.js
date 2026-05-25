@@ -287,8 +287,16 @@ app.get("/v1/lps", async (req, res) => {
     const sort = req.query.sort === "oldest" ? "asc" : "desc";
     const limit = parseInt(req.query.limit) || 12;
     const cursor = req.query.cursor ? parseInt(req.query.cursor) : undefined;
+    const search = req.query.search;
+
 
     const lps = await prisma.lp.findMany({
+        where: search ? {
+            OR: [
+                {title: {contains: search}},
+                {artist: {contains: search}},
+            ],
+        } : undefined,
         take: limit + 1,
         ...(cursor && { cursor: { id: cursor }, skip: 1 }),
         orderBy: { createdAt: sort },
