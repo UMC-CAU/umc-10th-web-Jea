@@ -252,6 +252,27 @@ export const HomePage = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [sidebarOpen]);
 
+    // ESC 키로 사이드바 닫기
+    useEffect(() => {
+        const handleKeydown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setSidebarOpen(false);
+        };
+        document.addEventListener("keydown", handleKeydown);
+        return () => document.removeEventListener("keydown", handleKeydown);
+    }, []);
+
+    // 사이드바 열렸을 때 배경 스크롤 방지
+    useEffect(() => {
+        if (sidebarOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [sidebarOpen]);
+
     const {
         data,
         isLoading,
@@ -330,16 +351,26 @@ export const HomePage = () => {
 
     return (
         <div className="flex" style={{ minHeight: "calc(100vh - 56px)" }}>
-            {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30" />}
+            {/* 딤 배경 - opacity transition */}
+            <div
+                className={`fixed inset-0 bg-black/40 z-30 transition-opacity duration-300 ${
+                    sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+            />
 
+            {/* 사이드바 - translate transition */}
             <div
                 ref={sidebarRef}
-                className={`fixed top-14 left-0 bottom-0 w-44 bg-neutral-900 border-r border-neutral-800 py-6 px-3 flex flex-col z-40 transition-transform duration-300 ${
+                className={`fixed top-14 left-0 bottom-0 w-44 bg-neutral-900 border-r border-neutral-800 py-6 px-3 flex flex-col z-40 transition-transform duration-300 ease-in-out ${
                     sidebarOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
             >
                 <div className="flex flex-col gap-1 flex-1">
-                    <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white hover:bg-neutral-800 transition text-left">
+                    <button
+                        onClick={() => { navigate("/search"); setSidebarOpen(false); }}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white hover:bg-neutral-800 transition text-left"
+                    >
                         <Search size={16} className="text-neutral-400 flex-shrink-0" />
                         찾기
                     </button>
